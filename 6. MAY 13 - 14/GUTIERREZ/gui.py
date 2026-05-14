@@ -49,7 +49,7 @@ class RCColumnDesignerApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("NSCP RC Column Designer — KIRAS Engineering")
+        self.title("NSCP RC Column Designer")
         self.geometry("1400x900")
         self.minsize(1100, 700)
         self.configure(bg=CLR_BG)
