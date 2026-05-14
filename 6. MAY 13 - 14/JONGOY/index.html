@@ -1,0 +1,2333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STAAD.Pro Report Generator — KIRAS Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   ROOT VARIABLES & RESET
+   Design direction: Industrial-utilitarian. Monochrome base
+   with amber/safety-orange accent. Inspired by engineering
+   blueprints and construction documentation.
+   ============================================================ */
+:root {
+  --bg:        #0e0f11;
+  --bg2:       #15171a;
+  --bg3:       #1c1f24;
+  --border:    #2a2d33;
+  --border2:   #3a3d45;
+  --text:      #d4d8e0;
+  --text-dim:  #7a7f8a;
+  --text-faint:#3e4250;
+  --amber:     #f5a623;
+  --amber-dim: #b87a1a;
+  --amber-bg:  rgba(245,166,35,0.08);
+  --red:       #e05252;
+  --red-bg:    rgba(224,82,82,0.10);
+  --green:     #4caf7d;
+  --green-bg:  rgba(76,175,125,0.10);
+  --blue:      #5b9bd5;
+  --blue-bg:   rgba(91,155,213,0.10);
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'IBM Plex Sans', sans-serif;
+  --radius:    4px;
+  --sidebar-w: 220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: 300;
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+a { color: var(--amber); text-decoration: none; }
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 52px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topbar-logo {
+  width: 28px; height: 28px;
+  background: var(--amber);
+  clip-path: polygon(0 25%,50% 0,100% 25%,100% 75%,50% 100%,0 75%);
+  flex-shrink: 0;
+}
+.topbar-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+.topbar-name span { color: var(--amber); }
+.topbar-version {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg3);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+.app {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 52px);
+}
+
+/* ============================================================
+   SIDEBAR NAV
+   ============================================================ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.sidebar-section {
+  padding: 20px 0 8px;
+}
+.sidebar-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  padding: 0 16px 8px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-dim);
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active {
+  background: var(--amber-bg);
+  color: var(--amber);
+  border-left-color: var(--amber);
+}
+.nav-item .nav-icon {
+  width: 16px; height: 16px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 10px;
+  color: var(--text-dim);
+}
+.nav-item.active .nav-badge {
+  background: var(--amber-bg);
+  border-color: var(--amber-dim);
+  color: var(--amber);
+}
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  line-height: 1.8;
+}
+
+/* ============================================================
+   CONTENT AREA
+   ============================================================ */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ============================================================
+   PANELS / TABS
+   ============================================================ */
+.tab-panel { display: none; flex-direction: column; gap: 24px; }
+.tab-panel.active { display: flex; }
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.card-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.card-subtitle { font-size: 12px; color: var(--text-dim); }
+.card-body { padding: 20px; }
+
+/* ============================================================
+   UPLOAD ZONE
+   ============================================================ */
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 56px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--amber);
+  background: var(--amber-bg);
+}
+.upload-zone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%; height: 100%;
+}
+.upload-icon {
+  width: 48px; height: 48px;
+  margin: 0 auto 16px;
+  opacity: 0.4;
+}
+.upload-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.upload-sub { font-size: 12px; color: var(--text-dim); }
+.upload-ext {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+.ext-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   PROGRESS / STATUS
+   ============================================================ */
+.progress-wrap {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.progress-wrap.visible { display: flex; }
+.progress-bar-outer {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar-inner {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s;
+}
+.progress-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   FILE INFO STRIP
+   ============================================================ */
+.file-info-strip {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.file-info-strip.visible { display: flex; }
+.file-info-name { font-family: var(--mono); font-weight: 600; color: var(--amber); }
+.file-info-size { color: var(--text-dim); }
+.file-info-status {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+.file-info-status.ok { background: var(--green-bg); color: var(--green); }
+.file-info-status.err { background: var(--red-bg); color: var(--red); }
+
+/* ============================================================
+   STAT GRID
+   ============================================================ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.stat-cell {
+  background: var(--bg2);
+  padding: 16px;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  font-family: var(--mono);
+}
+.stat-value {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--amber);
+}
+.stat-unit {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-family: var(--mono);
+}
+
+/* ============================================================
+   DATA TABLES
+   ============================================================ */
+.table-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+thead th {
+  background: var(--bg3);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--bg3); }
+tbody td {
+  padding: 7px 12px;
+  color: var(--text);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.td-num { text-align: right; }
+.td-critical { color: var(--red) !important; font-weight: 600; }
+.td-ok { color: var(--green); }
+.td-warn { color: var(--amber); }
+.td-id { color: var(--text-dim); }
+
+/* Row highlighting for critical members */
+tr.row-critical { background: var(--red-bg) !important; }
+tr.row-critical:hover { background: rgba(224,82,82,0.15) !important; }
+
+/* ============================================================
+   FILTER BAR
+   ============================================================ */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.filter-input:focus { border-color: var(--amber); }
+.filter-input::placeholder { color: var(--text-faint); }
+select.filter-input { cursor: pointer; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--amber);
+  color: #0e0f11;
+}
+.btn-primary:hover { background: #f0b84a; }
+.btn-secondary {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--amber); color: var(--amber); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ============================================================
+   UNIT CONVERTER STRIP
+   ============================================================ */
+.unit-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.unit-strip label { color: var(--text-dim); font-size: 11px; font-family: var(--mono); }
+.unit-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.unit-opt {
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg2);
+  transition: all 0.15s;
+  user-select: none;
+}
+.unit-opt.active { background: var(--amber); color: #0e0f11; font-weight: 600; }
+
+/* ============================================================
+   REPORT VIEW
+   ============================================================ */
+#report-container {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px;
+  font-family: var(--sans);
+}
+
+/* Report typography */
+.rpt-cover {
+  border-bottom: 3px solid var(--amber);
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+}
+.rpt-firm {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 20px;
+}
+.rpt-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.rpt-subtitle {
+  font-size: 16px;
+  color: var(--text-dim);
+  font-weight: 300;
+  margin-bottom: 24px;
+}
+.rpt-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.rpt-meta-cell {
+  padding: 12px 16px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.rpt-meta-cell:last-child { border-right: none; }
+.rpt-meta-key {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+.rpt-meta-val { font-size: 13px; font-weight: 600; color: var(--text); }
+.rpt-section {
+  margin-bottom: 40px;
+}
+.rpt-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.rpt-section-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--amber);
+  font-weight: 600;
+  min-width: 24px;
+}
+.rpt-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rpt-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 10px 14px;
+  background: var(--bg3);
+  border-left: 3px solid var(--border2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin-bottom: 12px;
+  font-family: var(--mono);
+}
+.rpt-assumption {
+  border-left-color: var(--amber-dim);
+  color: var(--text-dim);
+}
+
+/* Report table (slightly adjusted for readability) */
+.rpt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.rpt-table thead th {
+  background: var(--bg3);
+  padding: 9px 12px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.rpt-table tbody td {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.rpt-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+  color: var(--text-faint);
+}
+.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
+.empty-text { font-size: 13px; font-family: var(--mono); }
+
+/* ============================================================
+   PRINT STYLES
+   ============================================================ */
+@media print {
+  body { background: white; color: black; }
+  .topbar, .sidebar, .content > *:not(#panel-report) { display: none !important; }
+  .tab-panel { display: flex !important; }
+  #report-container {
+    background: white;
+    border: none;
+    padding: 0;
+    color: black;
+  }
+  :root {
+    --bg: white; --bg2: white; --bg3: #f5f5f5;
+    --text: #111; --text-dim: #555; --border: #ddd;
+    --amber: #b87a00; --amber-bg: #fff8e1;
+    --red: #c00; --green: #2e7d32;
+  }
+  .rpt-cover { border-bottom: 3px solid #b87a00; }
+  @page { margin: 20mm; }
+}
+
+/* ============================================================
+   MISC HELPERS
+   ============================================================ */
+.mono { font-family: var(--mono); }
+.text-amber { color: var(--amber); }
+.text-dim { color: var(--text-dim); }
+.text-red { color: var(--red); }
+.text-green { color: var(--green); }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.gap-8 { gap: 8px; }
+.mb-0 { margin-bottom: 0 !important; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo"></div>
+    <span class="topbar-name">KIRAS<span>.</span>ANL</span>
+  </div>
+  <span class="topbar-version">v1.0 — STAAD.Pro Report Generator</span>
+</header>
+
+<!-- APP SHELL -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Workflow</div>
+      <div class="nav-item active" data-tab="input" onclick="switchTab('input')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 1a.5.5 0 01.5.5v11.793l3.146-3.147a.5.5 0 01.708.708l-4 4a.5.5 0 01-.708 0l-4-4a.5.5 0 01.708-.708L7.5 13.293V1.5A.5.5 0 018 1z"/>
+        </svg>
+        Input File
+        <span class="nav-badge" id="badge-input">—</span>
+      </div>
+      <div class="nav-item" data-tab="geometry" onclick="switchTab('geometry')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2 2h2v2H2V2zm0 4h2v2H2V6zm0 4h2v2H2v-2zm4-8h2v2H6V2zm0 4h2v2H6V6zm0 4h2v2H6v-2zm4-8h2v2h-2V2zm0 4h2v2h-2V6zm0 4h2v2h-2v-2z"/>
+        </svg>
+        Geometry
+        <span class="nav-badge" id="badge-geometry">—</span>
+      </div>
+      <div class="nav-item" data-tab="loads" onclick="switchTab('loads')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 3.5a.5.5 0 00-1 0V9a.5.5 0 00.252.434l3.5 2a.5.5 0 00.496-.868L8 8.71V3.5z"/>
+          <path d="M8 16A8 8 0 108 0a8 8 0 000 16zm7-8A7 7 0 111 8a7 7 0 0114 0z"/>
+        </svg>
+        Loads
+        <span class="nav-badge" id="badge-loads">—</span>
+      </div>
+      <div class="nav-item" data-tab="members" onclick="switchTab('members')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm14.817 3.113a.5.5 0 01.07.704l-4.5 5.5a.5.5 0 01-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 01-.808-.588l4-5.5a.5.5 0 01.758-.06l2.609 2.61 4.15-5.073a.5.5 0 01.704-.07z"/>
+        </svg>
+        Member Forces
+        <span class="nav-badge" id="badge-members">—</span>
+      </div>
+      <div class="nav-item" data-tab="reactions" onclick="switchTab('reactions')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 15A7 7 0 118 1a7 7 0 010 14zm0 1A8 8 0 108 0a8 8 0 000 16z"/>
+          <path d="M8 4a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3v3a.5.5 0 01-1 0v-3h-3a.5.5 0 010-1h3v-3A.5.5 0 018 4z"/>
+        </svg>
+        Reactions
+        <span class="nav-badge" id="badge-reactions">—</span>
+      </div>
+      <div class="nav-item" data-tab="displacements" onclick="switchTab('displacements')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M1 8a.5.5 0 01.5-.5h13a.5.5 0 010 1h-13A.5.5 0 011 8zm7-8a.5.5 0 01.5.5v3.793l1.146-1.147a.5.5 0 01.708.708l-2 2a.5.5 0 01-.708 0l-2-2a.5.5 0 11.708-.708L7.5 4.293V.5A.5.5 0 018 0zm-.5 11.707l-1.146 1.147a.5.5 0 01-.708-.708l2-2a.5.5 0 01.708 0l2 2a.5.5 0 01-.708.708L8.5 11.707V15.5a.5.5 0 01-1 0v-3.793z"/>
+        </svg>
+        Displacements
+        <span class="nav-badge" id="badge-displacements">—</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Output</div>
+      <div class="nav-item" data-tab="report" onclick="switchTab('report')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M14 4.5V14a2 2 0 01-2 2H4a2 2 0 01-2-2V2a2 2 0 012-2h5.5L14 4.5zm-3 0A1.5 1.5 0 019.5 3V1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V4.5h-2z"/>
+        </svg>
+        Report View
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      KIRAS Engineering Ltd<br>
+      Structural Analysis Tools<br>
+      © 2026
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- ============ TAB: INPUT ============ -->
+    <div class="tab-panel active" id="panel-input">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Upload STAAD Output File</span>
+          <span class="card-subtitle">.ANL / .STD / .TXT</span>
+        </div>
+        <div class="card-body">
+          <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" accept=".anl,.std,.txt,.out">
+            <svg class="upload-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="8" y="12" width="32" height="36" rx="2"/>
+              <polyline points="28,4 40,4 40,16"/>
+              <line x1="28" y1="4" x2="28" y2="16"/>
+              <line x1="28" y1="16" x2="40" y2="16"/>
+              <line x1="16" y1="26" x2="32" y2="26"/>
+              <line x1="16" y1="32" x2="28" y2="32"/>
+            </svg>
+            <div class="upload-title">Drop your STAAD output file here</div>
+            <div class="upload-sub">or click to browse your files</div>
+            <div class="upload-ext">
+              <span class="ext-tag">.ANL</span>
+              <span class="ext-tag">.STD</span>
+              <span class="ext-tag">.TXT</span>
+              <span class="ext-tag">.OUT</span>
+            </div>
+          </div>
+          <div class="progress-wrap" id="progress-wrap">
+            <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
+            <div class="progress-label" id="progress-label">Parsing file…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="file-info-strip" id="file-info-strip">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="color:var(--amber)">
+          <path d="M14 4.5V14a2 2 0 01-2 2H4a2 2 0 01-2-2V2a2 2 0 012-2h5.5L14 4.5zm-3 0A1.5 1.5 0 019.5 3V1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V4.5h-2z"/>
+        </svg>
+        <span class="file-info-name" id="file-info-name">—</span>
+        <span class="file-info-size" id="file-info-size">—</span>
+        <span class="file-info-status ok" id="file-info-status">PARSED</span>
+      </div>
+
+      <!-- Project Info Card (editable) -->
+      <div class="card" id="card-project-info" style="display:none">
+        <div class="card-header">
+          <span class="card-title">Project Information</span>
+          <span class="card-subtitle">Auto-detected from file — edit as needed</span>
+        </div>
+        <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div class="stat-label" style="margin-bottom:4px">Job Name</div>
+            <input class="filter-input" id="pi-jobname" style="width:100%" placeholder="Project Name">
+          </div>
+          <div>
+            <div class="stat-label" style="margin-bottom:4px">Job Number</div>
+            <input class="filter-input" id="pi-jobno" style="width:100%" placeholder="e.g. MB26017">
+          </div>
+          <div>
+            <div class="stat-label" style="margin-bottom:4px">Engineer</div>
+            <input class="filter-input" id="pi-engineer" style="width:100%" placeholder="Engineer of Record">
+          </div>
+          <div>
+            <div class="stat-label" style="margin-bottom:4px">Date</div>
+            <input class="filter-input" id="pi-date" style="width:100%" placeholder="2026-05-14">
+          </div>
+          <div>
+            <div class="stat-label" style="margin-bottom:4px">Software</div>
+            <input class="filter-input" id="pi-software" style="width:100%" placeholder="STAAD.Pro V8i / Connect">
+          </div>
+          <div>
+            <div class="stat-label" style="margin-bottom:4px">Code</div>
+            <input class="filter-input" id="pi-code" style="width:100%" placeholder="NBC 2020 / NBCP 2015">
+          </div>
+        </div>
+      </div>
+
+      <!-- Parse Summary Stats -->
+      <div id="parse-summary" style="display:none">
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="stat-label">Joints</div><div class="stat-value" id="s-joints">0</div><div class="stat-unit">nodes</div></div>
+          <div class="stat-cell"><div class="stat-label">Members</div><div class="stat-value" id="s-members">0</div><div class="stat-unit">elements</div></div>
+          <div class="stat-cell"><div class="stat-label">Supports</div><div class="stat-value" id="s-supports">0</div><div class="stat-unit">nodes</div></div>
+          <div class="stat-cell"><div class="stat-label">Load Cases</div><div class="stat-value" id="s-loadcases">0</div><div class="stat-unit">cases</div></div>
+          <div class="stat-cell"><div class="stat-label">Sections</div><div class="stat-value" id="s-sections">0</div><div class="stat-unit">profiles</div></div>
+          <div class="stat-cell"><div class="stat-label">Materials</div><div class="stat-value" id="s-materials">0</div><div class="stat-unit">types</div></div>
+        </div>
+      </div>
+
+      <div class="btn-group" id="action-buttons" style="display:none">
+        <button class="btn btn-primary" onclick="generateReport()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4.5V14a2 2 0 01-2 2H4a2 2 0 01-2-2V2a2 2 0 012-2h5.5L14 4.5zm-3 0A1.5 1.5 0 019.5 3V1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V4.5h-2z"/></svg>
+          Generate Report
+        </button>
+        <button class="btn btn-secondary" onclick="window.print()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 8a.5.5 0 100-1 .5.5 0 000 1z"/><path d="M5 1a2 2 0 00-2 2v2H2a2 2 0 00-2 2v3a2 2 0 002 2h1v1a2 2 0 002 2h6a2 2 0 002-2v-1h1a2 2 0 002-2V7a2 2 0 00-2-2h-1V3a2 2 0 00-2-2H5zM4 3a1 1 0 011-1h6a1 1 0 011 1v2H4V3zm1 5a2 2 0 00-2 2v1H2a1 1 0 01-1-1V7a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-1 1h-1v-1a2 2 0 00-2-2H5zm7 2v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3a1 1 0 011-1h6a1 1 0 011 1z"/></svg>
+          Print / PDF
+        </button>
+        <button class="btn btn-ghost" onclick="exportJSON()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 1a.5.5 0 01.5.5v11.793l3.146-3.147a.5.5 0 01.708.708l-4 4a.5.5 0 01-.708 0l-4-4a.5.5 0 01.708-.708L7.5 13.293V1.5A.5.5 0 018 1z"/></svg>
+          Export JSON
+        </button>
+      </div>
+    </div>
+
+    <!-- ============ TAB: GEOMETRY ============ -->
+    <div class="tab-panel" id="panel-geometry">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Joint Coordinates</span>
+          <div class="filter-bar">
+            <input class="filter-input" id="filter-joints" placeholder="Search joint…" oninput="filterTable('tbl-joints','filter-joints')">
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap"><table id="tbl-joints">
+            <thead><tr><th>Joint</th><th class="td-num">X (m)</th><th class="td-num">Y (m)</th><th class="td-num">Z (m)</th><th>Support</th></tr></thead>
+            <tbody id="tbody-joints"><tr><td colspan="5"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Member Incidences</span>
+          <div class="filter-bar">
+            <input class="filter-input" id="filter-members-geo" placeholder="Search member…" oninput="filterTable('tbl-members-geo','filter-members-geo')">
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap"><table id="tbl-members-geo">
+            <thead><tr><th>Member</th><th>Start Node</th><th>End Node</th><th>Section</th><th>Material</th></tr></thead>
+            <tbody id="tbody-members-geo"><tr><td colspan="5"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: LOADS ============ -->
+    <div class="tab-panel" id="panel-loads">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Load Cases &amp; Combinations</span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap"><table id="tbl-loadcases">
+            <thead><tr><th>Case #</th><th>Type</th><th>Title</th></tr></thead>
+            <tbody id="tbody-loadcases"><tr><td colspan="3"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Applied Nodal Loads</span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap"><table id="tbl-nodeloads">
+            <thead><tr><th>Load Case</th><th>Node</th><th class="td-num">FX (kN)</th><th class="td-num">FY (kN)</th><th class="td-num">FZ (kN)</th><th class="td-num">MX (kNm)</th><th class="td-num">MY (kNm)</th><th class="td-num">MZ (kNm)</th></tr></thead>
+            <tbody id="tbody-nodeloads"><tr><td colspan="8"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Member Loads (UDL / Concentrated)</span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap"><table id="tbl-memberloads">
+            <thead><tr><th>Load Case</th><th>Member</th><th>Type</th><th>Direction</th><th class="td-num">Value (kN/m or kN)</th><th>Details</th></tr></thead>
+            <tbody id="tbody-memberloads"><tr><td colspan="6"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: MEMBER FORCES ============ -->
+    <div class="tab-panel" id="panel-members">
+      <div class="unit-strip">
+        <span class="text-dim">Force units:</span>
+        <div class="unit-toggle">
+          <span class="unit-opt active" onclick="setForceUnit('kN',this)">kN / kNm</span>
+          <span class="unit-opt" onclick="setForceUnit('N',this)">N / Nm</span>
+          <span class="unit-opt" onclick="setForceUnit('kip',this)">kip / kip·ft</span>
+        </div>
+        <span class="text-dim" style="margin-left:8px">Load case filter:</span>
+        <select class="filter-input" id="filter-lc" onchange="renderMemberForcesTable()">
+          <option value="all">All cases</option>
+        </select>
+        <input class="filter-input" id="filter-mbr" placeholder="Member ID…" oninput="renderMemberForcesTable()" style="width:100px">
+        <label style="margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--mono)">
+          <input type="checkbox" id="chk-critical" onchange="renderMemberForcesTable()">
+          Critical only
+        </label>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Member End Forces</span>
+          <span class="card-subtitle" id="forces-count">—</span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table id="tbl-forces">
+              <thead>
+                <tr>
+                  <th>Member</th><th>LC</th><th>End</th>
+                  <th class="td-num">Axial (kN)</th>
+                  <th class="td-num">Shear-Y (kN)</th>
+                  <th class="td-num">Shear-Z (kN)</th>
+                  <th class="td-num">Torsion (kNm)</th>
+                  <th class="td-num">Mom-Y (kNm)</th>
+                  <th class="td-num">Mom-Z (kNm)</th>
+                  <th>Flag</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-forces">
+                <tr><td colspan="10"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Envelope / critical summary -->
+      <div class="card" id="card-envelope" style="display:none">
+        <div class="card-header">
+          <span class="card-title">Force Envelope — Critical Values per Member</span>
+          <span class="card-subtitle">Max |value| across all load cases</span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table id="tbl-envelope">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th class="td-num">Max Axial (kN)</th><th>LC</th>
+                  <th class="td-num">Max Shear (kN)</th><th>LC</th>
+                  <th class="td-num">Max Moment (kNm)</th><th>LC</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-envelope"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: REACTIONS ============ -->
+    <div class="tab-panel" id="panel-reactions">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Support Reactions</span>
+          <select class="filter-input" id="filter-react-lc" onchange="renderReactionsTable()">
+            <option value="all">All load cases</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table id="tbl-reactions">
+              <thead>
+                <tr>
+                  <th>Node</th><th>LC</th>
+                  <th class="td-num">FX (kN)</th>
+                  <th class="td-num">FY (kN)</th>
+                  <th class="td-num">FZ (kN)</th>
+                  <th class="td-num">MX (kNm)</th>
+                  <th class="td-num">MY (kNm)</th>
+                  <th class="td-num">MZ (kNm)</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-reactions">
+                <tr><td colspan="8"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: DISPLACEMENTS ============ -->
+    <div class="tab-panel" id="panel-displacements">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Joint Displacements</span>
+          <div class="filter-bar">
+            <select class="filter-input" id="filter-disp-lc" onchange="renderDisplacementsTable()">
+              <option value="all">All load cases</option>
+            </select>
+            <input class="filter-input" id="filter-disp-node" placeholder="Node ID…" oninput="renderDisplacementsTable()" style="width:80px">
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table id="tbl-displacements">
+              <thead>
+                <tr>
+                  <th>Node</th><th>LC</th>
+                  <th class="td-num">UX (mm)</th>
+                  <th class="td-num">UY (mm)</th>
+                  <th class="td-num">UZ (mm)</th>
+                  <th class="td-num">RX (rad)</th>
+                  <th class="td-num">RY (rad)</th>
+                  <th class="td-num">RZ (rad)</th>
+                  <th class="td-num">|δ| (mm)</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-displacements">
+                <tr><td colspan="9"><div class="empty-state"><div class="empty-text">No file loaded</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: REPORT ============ -->
+    <div class="tab-panel" id="panel-report">
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="generateReport()">Regenerate Report</button>
+        <button class="btn btn-secondary" onclick="window.print()">Print / Export PDF</button>
+      </div>
+      <div id="report-container">
+        <div class="empty-state">
+          <div class="empty-icon">📄</div>
+          <div class="empty-text">Click "Generate Report" to build the structural analysis report</div>
+        </div>
+      </div>
+    </div>
+
+  </main><!-- /content -->
+</div><!-- /app -->
+
+<script>
+/* ================================================================
+   STAAD.Pro OUTPUT PARSER & REPORT GENERATOR
+   Senior Engineer's Notes:
+   ----------------------------------------------------------------
+   STAAD .ANL files contain free-form text with distinct section
+   headers like "JOINT COORDINATES", "MEMBER INCIDENCES", etc.
+   Some files are input echo (.STD) which have model geometry but
+   not analysis results. We handle both gracefully.
+
+   PARSING STRATEGY:
+   1. Split the file into lines
+   2. Identify section boundaries by keyword scanning
+   3. Use targeted regex per section type
+   4. Build a structured data object (MODEL) for rendering
+
+   ENGINEERING ASSUMPTIONS (documented for junior reviewer):
+   - Coordinates assumed in metres unless unit override detected
+   - Forces assumed in kN / kNm unless unit override detected
+   - Displacements assumed in mm
+   - "START" and "END" node forces are the two ends of a member
+   - Envelope = worst (max |value|) across all load cases
+   ================================================================ */
+
+// ----------------------------------------------------------------
+// GLOBAL STATE
+// ----------------------------------------------------------------
+let MODEL = null;           // Parsed structural model
+let forceUnit = 'kN';       // Active unit for force display
+let forceMultiplier = 1.0;  // Multiplier for unit conversion
+
+// ----------------------------------------------------------------
+// UI HELPERS
+// ----------------------------------------------------------------
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelector(`.nav-item[data-tab="${name}"]`).classList.add('active');
+}
+
+function filterTable(tableId, inputId) {
+  const q = document.getElementById(inputId).value.toLowerCase();
+  const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function setForceUnit(unit, el) {
+  forceUnit = unit;
+  document.querySelectorAll('.unit-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  // Multiplier relative to kN base
+  const mult = { 'kN': 1, 'N': 1000, 'kip': 0.2248 };
+  forceMultiplier = mult[unit] || 1;
+  renderMemberForcesTable();
+  renderEnvelopeTable();
+  renderReactionsTable();
+}
+
+function setBadge(id, val) {
+  const el = document.getElementById('badge-' + id);
+  if (el) el.textContent = val == null ? '—' : String(val);
+}
+
+function fmt(v, dec=3) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return Number(v).toFixed(dec);
+}
+function fmtF(v) { // format force with unit multiplier
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return fmt(v * forceMultiplier);
+}
+
+// ----------------------------------------------------------------
+// FILE INPUT
+// ----------------------------------------------------------------
+const uploadZone = document.getElementById('upload-zone');
+const fileInput  = document.getElementById('file-input');
+
+uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  // Show progress indicator
+  const pw   = document.getElementById('progress-wrap');
+  const pbar = document.getElementById('progress-bar');
+  const plbl = document.getElementById('progress-label');
+  pw.classList.add('visible');
+  pbar.style.width = '0%';
+
+  const strip = document.getElementById('file-info-strip');
+  document.getElementById('file-info-name').textContent = file.name;
+  document.getElementById('file-info-size').textContent = `(${(file.size/1024).toFixed(1)} KB)`;
+  strip.classList.add('visible');
+
+  // Read the file as text — works for typical .ANL files (text-based)
+  const reader = new FileReader();
+
+  reader.onprogress = e => {
+    if (e.lengthComputable) {
+      const pct = Math.round(e.loaded / e.total * 60);
+      pbar.style.width = pct + '%';
+      plbl.textContent = `Reading file… ${pct}%`;
+    }
+  };
+
+  reader.onload = e => {
+    pbar.style.width = '70%';
+    plbl.textContent = 'Parsing structure…';
+    // Yield to browser to update UI before heavy parsing
+    setTimeout(() => {
+      try {
+        MODEL = parseSTAAD(e.target.result);
+        pbar.style.width = '100%';
+        plbl.textContent = `Done — ${MODEL.nodes.length} joints, ${MODEL.members.length} members extracted`;
+        document.getElementById('file-info-status').textContent = 'PARSED';
+        document.getElementById('file-info-status').className = 'file-info-status ok';
+        onModelLoaded();
+      } catch(err) {
+        plbl.textContent = 'Parse error: ' + err.message;
+        document.getElementById('file-info-status').textContent = 'ERROR';
+        document.getElementById('file-info-status').className = 'file-info-status err';
+        console.error(err);
+      }
+    }, 50);
+  };
+
+  reader.onerror = () => {
+    plbl.textContent = 'File read error';
+    document.getElementById('file-info-status').textContent = 'ERROR';
+    document.getElementById('file-info-status').className = 'file-info-status err';
+  };
+
+  reader.readAsText(file);
+}
+
+// ----------------------------------------------------------------
+// STAAD OUTPUT PARSER
+// ----------------------------------------------------------------
+/*
+  STAAD .ANL files have this general structure (abbreviated):
+  ──────────────────────────────────────────────────────────────
+  STAAD SPACE    job title here
+  JOINT COORDINATES
+   1  0.0  0.0  0.0
+   2  5.0  0.0  0.0
+  ...
+  MEMBER INCIDENCES
+   1  1  2
+  ...
+  MEMBER PROPERTY AMERICAN
+   1 TO 5 TABLE ST W12X26
+  CONSTANTS
+   E  199947.98  ALL
+   DENSITY  76.8195  ALL
+   POISSON  0.3  ALL
+  SUPPORTS
+   1 3 FIXED
+  LOAD 1  LOADTYPE Dead  TITLE SW
+  SELFWEIGHT -1
+  JOINT LOAD
+   4  FY  -10.0
+  LOAD COMBINATION 101
+   1 1.25  2 1.5
+  PERFORM ANALYSIS
+  PRINT MEMBER FORCES ALL
+  MEMBER FORCES
+  ──────────────────────────────────────────────────────────────
+  MEMBER  LOAD  JT    AXIAL       SHEAR-Y    SHEAR-Z    TORSION    MOM-Y     MOM-Z
+  ...
+  PRINT SUPPORT REACTIONS ALL
+  SUPPORT REACTIONS -UNIT KN METE
+  ──────────────────────────────────────────────────────────────
+  JOINT     LOAD    FX         FY        FZ         MX        MY        MZ
+  ...
+  PRINT JOINT DISPLACEMENTS
+  JOINT DISPLACEMENTS -UNIT KN METE
+  ──────────────────────────────────────────────────────────────
+  JOINT     LOAD    X-TRANS    Y-TRANS   Z-TRANS    X-ROTAN   Y-ROTAN   Z-ROTAN
+  ...
+*/
+function parseSTAAD(text) {
+  const lines = text.split(/\r?\n/);
+
+  // Remove continuation lines (STAAD uses '-' at end to continue)
+  const cleaned = [];
+  let pending = '';
+  for (let l of lines) {
+    const t = l.trimEnd();
+    if (t.endsWith('-')) {
+      pending += t.slice(0,-1) + ' ';
+    } else {
+      cleaned.push(pending + t);
+      pending = '';
+    }
+  }
+
+  const model = {
+    title:       '',
+    nodes:       [],    // [{id, x, y, z, support}]
+    members:     [],    // [{id, start, end, section, material}]
+    sections:    [],    // [{members, profile}]
+    materials:   [],    // [{property, value, unit}]
+    supports:    [],    // [{node, type}]
+    loadCases:   [],    // [{num, type, title}]
+    nodeLoads:   [],    // [{lc, node, fx, fy, fz, mx, my, mz}]
+    memberLoads: [],    // [{lc, member, loadType, dir, value, a, b}]
+    memberForces:[],    // [{member, lc, jt, axial, shearY, shearZ, torsion, momY, momZ}]
+    reactions:   [],    // [{node, lc, fx, fy, fz, mx, my, mz}]
+    displacements:[],   // [{node, lc, ux, uy, uz, rx, ry, rz}]
+    unitForce:   'kN',
+    unitLength:  'm',
+  };
+
+  let i = 0;
+  const n = cleaned.length;
+
+  // Helper: peek at current line, upper-cased
+  const peek = () => cleaned[i] ? cleaned[i].trim().toUpperCase() : '';
+
+  // ── Title / Header ──────────────────────────────────────────
+  // STAAD SPACE / PLANE / FLOOR / TRUSS  <title>
+  {
+    const titleMatch = text.match(/STAAD\s+(?:SPACE|PLANE|FLOOR|TRUSS)\s+(.+)/i);
+    if (titleMatch) model.title = titleMatch[1].trim();
+  }
+
+  // ── Date / Software detection ───────────────────────────────
+  // Common patterns:  "** DATE = " or "* Input Generated"
+  {
+    const dateM = text.match(/DATE\s*=\s*(\S+)/i) || text.match(/(\d{1,2}[\/\-]\w+[\/\-]\d{2,4})/);
+    if (dateM) model.detectedDate = dateM[1];
+    const swM = text.match(/STAAD\.Pro\s*([A-Z0-9\s\.]+)?/i);
+    if (swM) model.software = 'STAAD.Pro ' + (swM[1]||'').trim();
+  }
+
+  // ── Unit detection ──────────────────────────────────────────
+  // UNIT KN METER / UNIT KNS METE / UNIT POUND FEET etc.
+  {
+    const unitM = text.match(/UNIT\s+(\w+)\s+(\w+)/i);
+    if (unitM) {
+      model.unitForce  = unitM[1].toUpperCase();
+      model.unitLength = unitM[2].toUpperCase();
+    }
+  }
+
+  // ── Pass 1: JOINT COORDINATES ───────────────────────────────
+  const jcIdx = cleaned.findIndex(l => /^\s*JOINT\s+COORD/i.test(l));
+  if (jcIdx >= 0) {
+    for (let k = jcIdx + 1; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      if (!ln || /^[A-Z]/.test(ln) && !/^\d/.test(ln)) {
+        // Stop on keyword line (non-numeric start)
+        if (/^[A-Z]{3,}/.test(ln) && !/^\d/.test(ln)) break;
+      }
+      // Pattern: nodeId  x  y  z   [optional extra tokens like NOCHECK]
+      const m = ln.match(/^(\d+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)/);
+      if (m) {
+        model.nodes.push({
+          id: parseInt(m[1]),
+          x: parseFloat(m[2]),
+          y: parseFloat(m[3]),
+          z: parseFloat(m[4]),
+          support: null,
+        });
+      }
+    }
+  }
+
+  // ── Pass 2: MEMBER INCIDENCES ────────────────────────────────
+  const miIdx = cleaned.findIndex(l => /^\s*MEMBER\s+INCID/i.test(l));
+  if (miIdx >= 0) {
+    for (let k = miIdx + 1; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      if (/^[A-Z]{3,}/.test(ln) && !/^\d/.test(ln)) break;
+      const m = ln.match(/^(\d+)\s+(\d+)\s+(\d+)/);
+      if (m) {
+        model.members.push({
+          id: parseInt(m[1]),
+          start: parseInt(m[2]),
+          end: parseInt(m[3]),
+          section: '—',
+          material: '—',
+        });
+      }
+    }
+  }
+
+  // ── Pass 3: MEMBER PROPERTY ──────────────────────────────────
+  // Patterns:
+  //   1 TO 10 TABLE ST W12X26
+  //   11 12 TABLE ST HSS4X4X0.25
+  //   1 PRIS AX 10.0 IZ 833 IY 28 IX 19
+  const mpIdx = cleaned.findIndex(l => /^\s*MEMBER\s+PROP/i.test(l));
+  if (mpIdx >= 0) {
+    for (let k = mpIdx + 1; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      if (/^[A-Z]{3,}/.test(ln) && !/^\d/.test(ln)) break;
+      if (!ln) continue;
+      // Parse member ID range:  "1 TO 5 TABLE ST W12X26"
+      const tableM = ln.match(/^([\d\s]+(?:TO\s+\d+)?(?:\s+\d+)*)\s+TABLE\s+\w+\s+(\S+)/i);
+      const prisM  = ln.match(/^([\d\s]+(?:TO\s+\d+)?)\s+PRIS/i);
+      let profile = '—';
+      let affectedStr = '';
+      if (tableM) { affectedStr = tableM[1]; profile = tableM[2]; }
+      else if (prisM) { affectedStr = prisM[1]; profile = 'PRISMATIC'; }
+      if (affectedStr) {
+        const ids = expandRange(affectedStr);
+        model.sections.push({ members: ids, profile });
+        ids.forEach(id => {
+          const mb = model.members.find(m => m.id === id);
+          if (mb) mb.section = profile;
+        });
+      }
+    }
+  }
+
+  // ── Pass 4: CONSTANTS (material props) ──────────────────────
+  const constIdx = cleaned.findIndex(l => /^\s*CONSTANTS?\b/i.test(l));
+  if (constIdx >= 0) {
+    for (let k = constIdx + 1; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      if (/^(?:SUPPORTS?|LOAD\s|PERFORM|PRINT|FINISH)\b/i.test(ln)) break;
+      const m = ln.match(/^(\w+)\s+([\d\.Ee\-]+)/);
+      if (m) model.materials.push({ property: m[1], value: parseFloat(m[2]) });
+    }
+  }
+
+  // ── Pass 5: SUPPORTS ─────────────────────────────────────────
+  // "1 3 5 FIXED" or "2 PINNED" or "4 FIXED BUT FY MZ"
+  const supIdx = cleaned.findIndex(l => /^\s*SUPPORTS?\s*$/i.test(l));
+  if (supIdx >= 0) {
+    for (let k = supIdx + 1; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      if (/^[A-Z]{3,}/.test(ln) && !/^\d/.test(ln)) break;
+      const m = ln.match(/^([\d\s]+)\s+(FIXED|PINNED|ROLLER|HINGED)/i);
+      if (m) {
+        const ids = expandRange(m[1]);
+        const type = m[2].toUpperCase();
+        ids.forEach(id => {
+          model.supports.push({ node: id, type });
+          const nd = model.nodes.find(n => n.id === id);
+          if (nd) nd.support = type;
+        });
+      }
+    }
+  }
+
+  // ── Pass 6: LOAD CASES ───────────────────────────────────────
+  // "LOAD 1  LOADTYPE Dead  TITLE Dead Load"
+  // "LOAD COMBINATION 101  TITLE 1.25DL+1.5LL"
+  for (let k = 0; k < cleaned.length; k++) {
+    const ln = cleaned[k].trim();
+    const lcM  = ln.match(/^LOAD\s+(\d+)\s+(?:LOADTYPE\s+(\w+)\s+)?TITLE\s+(.*)/i);
+    const combM = ln.match(/^LOAD\s+COMBINATION\s+(\d+)(?:\s+TITLE\s+(.*))?/i);
+    if (lcM)   model.loadCases.push({ num: parseInt(lcM[1]),  type: lcM[2]||'Primary',     title: lcM[3]||'' });
+    if (combM) model.loadCases.push({ num: parseInt(combM[1]), type: 'Combination', title: combM[2]||'' });
+  }
+  // Fallback: detect LOAD N lines without TITLE
+  if (model.loadCases.length === 0) {
+    for (let k = 0; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      const m = ln.match(/^LOAD\s+(\d+)\s*(?:LOADTYPE\s+(\w+))?\s*$/i);
+      if (m) model.loadCases.push({ num: parseInt(m[1]), type: m[2]||'Primary', title: `Load Case ${m[1]}` });
+    }
+  }
+
+  // ── Pass 7: JOINT LOADS ──────────────────────────────────────
+  // Within a LOAD N block, look for "JOINT LOAD" followed by node lines
+  {
+    let currentLC = null;
+    let inJointLoad = false;
+    for (let k = 0; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      const lcM = ln.match(/^LOAD\s+(\d+)/i);
+      if (lcM) { currentLC = parseInt(lcM[1]); inJointLoad = false; continue; }
+      if (/^JOINT\s+LOAD/i.test(ln)) { inJointLoad = true; continue; }
+      if (/^MEMBER\s+LOAD/i.test(ln)) { inJointLoad = false; continue; }
+      if (/^[A-Z]{3,}/.test(ln) && !/^\d/.test(ln)) { inJointLoad = false; continue; }
+      if (inJointLoad && currentLC != null) {
+        // "4  FX 10.0  FY -5.0" or separate lines "4 FY -10.0"
+        const m = ln.match(/^(\d+)\s+((?:[FMXYZ]+\s+[\-\d\.Ee]+\s*)+)/i);
+        if (m) {
+          const node = parseInt(m[1]);
+          const vals = { fx:0, fy:0, fz:0, mx:0, my:0, mz:0 };
+          const pairs = m[2].matchAll(/([FMXYZ]+)\s+([\-\d\.Ee]+)/gi);
+          for (const [, dir, val] of pairs) {
+            vals[dir.toLowerCase()] = parseFloat(val);
+          }
+          model.nodeLoads.push({ lc: currentLC, node, ...vals });
+        }
+      }
+    }
+  }
+
+  // ── Pass 8: MEMBER LOADS ─────────────────────────────────────
+  // "MEMBER LOAD" section: lines like "1 TO 5 UNI GY -10.0" or "3 CON GY -20.0 2.5"
+  {
+    let currentLC = null;
+    let inMemberLoad = false;
+    for (let k = 0; k < cleaned.length; k++) {
+      const ln = cleaned[k].trim();
+      const lcM = ln.match(/^LOAD\s+(\d+)/i);
+      if (lcM) { currentLC = parseInt(lcM[1]); inMemberLoad = false; continue; }
+      if (/^MEMBER\s+LOAD/i.test(ln)) { inMemberLoad = true; continue; }
+      if (/^JOINT\s+LOAD/i.test(ln))  { inMemberLoad = false; continue; }
+      if (/^[A-Z]{3,}/.test(ln) && !/^\d/.test(ln)) { inMemberLoad = false; continue; }
+      if (inMemberLoad && currentLC != null) {
+        // "1 TO 5  UNI  GY  -10.0"  or  "3  CON  GY  -20  2.5  5.0"
+        const m = ln.match(/^([\d\s]+(?:TO\s+\d+)?)\s+(UNI|CON|TRAP|LIN|UMOM|CMOM)\s+([GLFXYZ]+)\s+([\-\d\.Ee]+)(?:\s+([\d\.Ee]+))?(?:\s+([\d\.Ee]+))?/i);
+        if (m) {
+          const ids = expandRange(m[1]);
+          ids.forEach(id => {
+            model.memberLoads.push({
+              lc: currentLC, member: id,
+              loadType: m[2].toUpperCase(),
+              dir: m[3].toUpperCase(),
+              value: parseFloat(m[4]),
+              a: m[5] ? parseFloat(m[5]) : null,
+              b: m[6] ? parseFloat(m[6]) : null,
+            });
+          });
+        }
+      }
+    }
+  }
+
+  // ── Pass 9: MEMBER FORCES (Analysis Output) ──────────────────
+  /*
+    STAAD.Pro output block header (varies by version):
+      MEMBER FORCES (or MEMBER END FORCES)
+      MEMBER  LOAD  JT   AXIAL     SHEAR-Y  SHEAR-Z  TORSION  MOM-Y   MOM-Z
+         1      1   1   -45.23    10.12    0.00     0.00    0.00   -23.45
+                        2    45.23   -10.12   0.00     0.00    0.00    31.12
+    OR compact form:
+         1      1   START  -45.23  10.12  0.00  0.00  0.00  -23.45
+                    END    45.23  -10.12  0.00  0.00  0.00   31.12
+  */
+  const mfIdx = cleaned.findIndex(l => /MEMBER\s+(?:END\s+)?FORCES/i.test(l));
+  if (mfIdx >= 0) {
+    let k = mfIdx + 1;
+    // Skip header lines (non-data)
+    while (k < cleaned.length && !/^\s*\d/.test(cleaned[k]) && k < mfIdx + 5) k++;
+
+    let lastMember = null;
+    let lastLC = null;
+
+    for (; k < cleaned.length; k++) {
+      const ln = cleaned[k];
+      const t  = ln.trim();
+      // Stop on next major section keyword
+      if (/^(?:SUPPORT|JOINT\s+DISP|PRINT|PERFORM|FINISH|LOAD\s|STAAD\s)/i.test(t)) break;
+      if (!t) continue;
+
+      // Full line: member  lc  jt  6vals
+      // Regex: optional leading spaces, member id, lc, jt (numeric or START/END), 6 floats
+      const full = t.match(/^(\d+)\s+(\d+)\s+(?:(\d+)|START|END|S|E)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)/i);
+      if (full) {
+        lastMember = parseInt(full[1]);
+        lastLC     = parseInt(full[2]);
+        const jt   = full[3] || (t.toUpperCase().includes('START') ? 'START' : 'END');
+        model.memberForces.push({
+          member: lastMember, lc: lastLC, jt: jt,
+          axial:  parseFloat(full[4]),
+          shearY: parseFloat(full[5]),
+          shearZ: parseFloat(full[6]),
+          torsion:parseFloat(full[7]),
+          momY:   parseFloat(full[8]),
+          momZ:   parseFloat(full[9]),
+        });
+        continue;
+      }
+
+      // Continuation line (only jt + 6 values, member/lc from last row)
+      if (lastMember != null) {
+        const cont = t.match(/^(?:(\d+)|START|END|S|E)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)/i);
+        if (cont && !isNaN(parseInt(cont[1]))) {
+          // It's a second joint for same member/LC
+          const jt = cont[1];
+          model.memberForces.push({
+            member: lastMember, lc: lastLC, jt,
+            axial:  parseFloat(cont[2]),
+            shearY: parseFloat(cont[3]),
+            shearZ: parseFloat(cont[4]),
+            torsion:parseFloat(cont[5]),
+            momY:   parseFloat(cont[6]),
+            momZ:   parseFloat(cont[7]),
+          });
+        }
+      }
+    }
+  }
+
+  // ── Pass 10: SUPPORT REACTIONS ───────────────────────────────
+  /*
+    SUPPORT REACTIONS -UNIT KN METE
+    JOINT  LOAD    FX      FY       FZ      MX      MY     MZ
+      1      1   0.000  45.230   0.000   0.000  0.000  0.000
+  */
+  const srIdx = cleaned.findIndex(l => /SUPPORT\s+REACTION/i.test(l));
+  if (srIdx >= 0) {
+    let k = srIdx + 1;
+    while (k < cleaned.length && !/^\s*\d/.test(cleaned[k]) && k < srIdx + 5) k++;
+    let lastNode = null;
+    for (; k < cleaned.length; k++) {
+      const t = cleaned[k].trim();
+      if (/^(?:JOINT\s+DISP|PRINT|PERFORM|FINISH|MEMBER\s+FORCE|STAAD)/i.test(t)) break;
+      if (!t) continue;
+      const full = t.match(/^(\d+)\s+(\d+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)/);
+      if (full) {
+        lastNode = parseInt(full[1]);
+        model.reactions.push({
+          node: lastNode, lc: parseInt(full[2]),
+          fx: parseFloat(full[3]), fy: parseFloat(full[4]), fz: parseFloat(full[5]),
+          mx: parseFloat(full[6]), my: parseFloat(full[7]), mz: parseFloat(full[8]),
+        });
+        continue;
+      }
+      // Continuation (lc + 6 vals)
+      if (lastNode != null) {
+        const cont = t.match(/^(\d+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)/);
+        if (cont) {
+          model.reactions.push({
+            node: lastNode, lc: parseInt(cont[1]),
+            fx: parseFloat(cont[2]), fy: parseFloat(cont[3]), fz: parseFloat(cont[4]),
+            mx: parseFloat(cont[5]), my: parseFloat(cont[6]), mz: parseFloat(cont[7]),
+          });
+        }
+      }
+    }
+  }
+
+  // ── Pass 11: JOINT DISPLACEMENTS ─────────────────────────────
+  /*
+    JOINT DISPLACEMENTS -UNIT KN METE
+    JOINT  LOAD    X-TRANS  Y-TRANS  Z-TRANS  X-ROTAN  Y-ROTAN  Z-ROTAN
+      2      1   0.000   -12.450   0.000   0.000   0.000   0.003
+  */
+  const jdIdx = cleaned.findIndex(l => /JOINT\s+DISP/i.test(l));
+  if (jdIdx >= 0) {
+    let k = jdIdx + 1;
+    while (k < cleaned.length && !/^\s*\d/.test(cleaned[k]) && k < jdIdx + 5) k++;
+    let lastNode = null;
+    for (; k < cleaned.length; k++) {
+      const t = cleaned[k].trim();
+      if (/^(?:SUPPORT|PRINT|PERFORM|FINISH|MEMBER\s+FORCE|STAAD)/i.test(t)) break;
+      if (!t) continue;
+      const full = t.match(/^(\d+)\s+(\d+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)/);
+      if (full) {
+        lastNode = parseInt(full[1]);
+        // STAAD outputs displacements in current length unit; we store as-is,
+        // noting on report that they are in mm (typical output unit)
+        model.displacements.push({
+          node: lastNode, lc: parseInt(full[2]),
+          ux: parseFloat(full[3]), uy: parseFloat(full[4]), uz: parseFloat(full[5]),
+          rx: parseFloat(full[6]), ry: parseFloat(full[7]), rz: parseFloat(full[8]),
+        });
+        continue;
+      }
+      if (lastNode != null) {
+        const cont = t.match(/^(\d+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)\s+([\-\d\.Ee]+)/);
+        if (cont) {
+          model.displacements.push({
+            node: lastNode, lc: parseInt(cont[1]),
+            ux: parseFloat(cont[2]), uy: parseFloat(cont[3]), uz: parseFloat(cont[4]),
+            rx: parseFloat(cont[5]), ry: parseFloat(cont[6]), rz: parseFloat(cont[7]),
+          });
+        }
+      }
+    }
+  }
+
+  return model;
+}
+
+// ----------------------------------------------------------------
+// UTILITY: Expand STAAD member range strings
+// e.g. "1 TO 5 7 9" → [1,2,3,4,5,7,9]
+// ----------------------------------------------------------------
+function expandRange(str) {
+  const ids = [];
+  const tokens = str.trim().toUpperCase().split(/\s+/);
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] === 'TO' && i > 0 && i < tokens.length - 1) {
+      const from = parseInt(tokens[i-1]);
+      const to   = parseInt(tokens[i+1]);
+      for (let v = from + 1; v <= to; v++) ids.push(v);
+      i++; // skip next token, already consumed
+    } else if (/^\d+$/.test(tokens[i])) {
+      ids.push(parseInt(tokens[i]));
+    }
+  }
+  return [...new Set(ids)]; // deduplicate
+}
+
+// ----------------------------------------------------------------
+// POST-PARSE: COMPUTE FORCE ENVELOPE (worst case per member)
+// ----------------------------------------------------------------
+function computeEnvelope(memberForces) {
+  // Group by member, then find max |axial|, |shear|, |moment| across all LCs
+  const env = {};
+  for (const f of memberForces) {
+    if (!env[f.member]) env[f.member] = {
+      member: f.member,
+      maxAxial: 0, lcAxial: '—',
+      maxShear: 0, lcShear: '—',
+      maxMom:   0, lcMom:   '—',
+    };
+    const e = env[f.member];
+    const absAxial = Math.abs(f.axial);
+    const absShear = Math.max(Math.abs(f.shearY), Math.abs(f.shearZ));
+    const absMom   = Math.max(Math.abs(f.momY),   Math.abs(f.momZ));
+    if (absAxial > e.maxAxial) { e.maxAxial = absAxial; e.lcAxial = f.lc; e.rawAxial = f.axial; }
+    if (absShear > e.maxShear) { e.maxShear = absShear; e.lcShear = f.lc; }
+    if (absMom   > e.maxMom)   { e.maxMom   = absMom;   e.lcMom   = f.lc; }
+  }
+  return Object.values(env).sort((a,b) => a.member - b.member);
+}
+
+// ----------------------------------------------------------------
+// UI: POPULATE TABLES AFTER PARSING
+// ----------------------------------------------------------------
+function onModelLoaded() {
+  // Update stat summary
+  document.getElementById('s-joints').textContent   = MODEL.nodes.length;
+  document.getElementById('s-members').textContent  = MODEL.members.length;
+  document.getElementById('s-supports').textContent = MODEL.supports.length;
+  document.getElementById('s-loadcases').textContent= MODEL.loadCases.length;
+  const uniqueSections = [...new Set(MODEL.members.map(m => m.section).filter(s => s !== '—'))];
+  document.getElementById('s-sections').textContent = uniqueSections.length;
+  document.getElementById('s-materials').textContent= MODEL.materials.length;
+
+  document.getElementById('parse-summary').style.display = '';
+  document.getElementById('action-buttons').style.display = '';
+  document.getElementById('card-project-info').style.display = '';
+
+  // Pre-fill project info from detected data
+  document.getElementById('pi-jobname').value  = MODEL.title || '';
+  document.getElementById('pi-date').value     = MODEL.detectedDate || new Date().toISOString().slice(0,10);
+  document.getElementById('pi-software').value = MODEL.software || 'STAAD.Pro';
+
+  // Update nav badges
+  setBadge('geometry',      MODEL.nodes.length + ' nodes');
+  setBadge('loads',         MODEL.loadCases.length + ' LC');
+  setBadge('members',       MODEL.memberForces.length + ' rows');
+  setBadge('reactions',     MODEL.reactions.length + ' rows');
+  setBadge('displacements', MODEL.displacements.length + ' rows');
+
+  // Populate load case dropdowns
+  populateLCDropdowns();
+
+  // Render all tables
+  renderJointsTable();
+  renderMembersGeoTable();
+  renderLoadCasesTable();
+  renderNodeLoadsTable();
+  renderMemberLoadsTable();
+  renderMemberForcesTable();
+  renderEnvelopeTable();
+  renderReactionsTable();
+  renderDisplacementsTable();
+}
+
+function populateLCDropdowns() {
+  const lcs = [...new Set([
+    ...MODEL.memberForces.map(f => f.lc),
+    ...MODEL.reactions.map(r => r.lc),
+    ...MODEL.displacements.map(d => d.lc),
+  ])].sort((a,b) => a-b);
+
+  const ids = ['filter-lc','filter-react-lc','filter-disp-lc'];
+  for (const id of ids) {
+    const sel = document.getElementById(id);
+    // Keep first "All" option
+    while (sel.options.length > 1) sel.remove(1);
+    for (const lc of lcs) {
+      const opt = document.createElement('option');
+      opt.value = lc;
+      const lcInfo = MODEL.loadCases.find(c => c.num === lc);
+      opt.textContent = `LC ${lc}${lcInfo ? ' — ' + lcInfo.title : ''}`;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+// ── Joints table ──────────────────────────────────────────────
+function renderJointsTable() {
+  const tbody = document.getElementById('tbody-joints');
+  if (!MODEL.nodes.length) return;
+  tbody.innerHTML = MODEL.nodes.map(n => `
+    <tr>
+      <td class="td-id">${n.id}</td>
+      <td class="td-num">${fmt(n.x)}</td>
+      <td class="td-num">${fmt(n.y)}</td>
+      <td class="td-num">${fmt(n.z)}</td>
+      <td>${n.support ? `<span class="td-warn">${n.support}</span>` : '<span class="td-id">Free</span>'}</td>
+    </tr>`).join('');
+}
+
+// ── Member geometry table ──────────────────────────────────────
+function renderMembersGeoTable() {
+  const tbody = document.getElementById('tbody-members-geo');
+  if (!MODEL.members.length) return;
+  tbody.innerHTML = MODEL.members.map(m => `
+    <tr>
+      <td class="td-id">${m.id}</td>
+      <td>${m.start}</td>
+      <td>${m.end}</td>
+      <td class="text-amber">${m.section}</td>
+      <td class="td-id">${m.material}</td>
+    </tr>`).join('');
+}
+
+// ── Load cases table ───────────────────────────────────────────
+function renderLoadCasesTable() {
+  const tbody = document.getElementById('tbody-loadcases');
+  if (!MODEL.loadCases.length) {
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--text-dim);font-family:var(--mono);padding:12px">No load cases detected in this file (may be geometry-only input)</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = MODEL.loadCases.map(lc => `
+    <tr>
+      <td class="td-id mono">${lc.num}</td>
+      <td><span class="td-${lc.type==='Combination'?'warn':'ok'}">${lc.type}</span></td>
+      <td>${lc.title}</td>
+    </tr>`).join('');
+}
+
+function renderNodeLoadsTable() {
+  const tbody = document.getElementById('tbody-nodeloads');
+  if (!MODEL.nodeLoads.length) { tbody.innerHTML = emptyRow(8,'No nodal loads detected'); return; }
+  tbody.innerHTML = MODEL.nodeLoads.map(l => `
+    <tr>
+      <td class="td-id">LC ${l.lc}</td><td>${l.node}</td>
+      <td class="td-num">${fmt(l.fx)}</td><td class="td-num">${fmt(l.fy)}</td><td class="td-num">${fmt(l.fz)}</td>
+      <td class="td-num">${fmt(l.mx)}</td><td class="td-num">${fmt(l.my)}</td><td class="td-num">${fmt(l.mz)}</td>
+    </tr>`).join('');
+}
+
+function renderMemberLoadsTable() {
+  const tbody = document.getElementById('tbody-memberloads');
+  if (!MODEL.memberLoads.length) { tbody.innerHTML = emptyRow(6,'No member loads detected'); return; }
+  tbody.innerHTML = MODEL.memberLoads.map(l => `
+    <tr>
+      <td class="td-id">LC ${l.lc}</td><td>${l.member}</td>
+      <td>${l.loadType}</td><td>${l.dir}</td>
+      <td class="td-num">${fmt(l.value)}</td>
+      <td class="td-id">${l.a!=null?`a=${l.a}m`:''}${l.b!=null?` b=${l.b}m`:''}</td>
+    </tr>`).join('');
+}
+
+// ── Member Forces table (filterable) ──────────────────────────
+function renderMemberForcesTable() {
+  const tbody = document.getElementById('tbody-forces');
+  const filterLC  = document.getElementById('filter-lc').value;
+  const filterMbr = document.getElementById('filter-mbr').value.trim();
+  const critOnly  = document.getElementById('chk-critical').checked;
+
+  if (!MODEL || !MODEL.memberForces.length) {
+    tbody.innerHTML = emptyRow(10,'No member forces detected in this file');
+    document.getElementById('forces-count').textContent = '—';
+    return;
+  }
+
+  // Compute envelope once for critical flagging
+  const envelope = computeEnvelope(MODEL.memberForces);
+  const envMap = {};
+  for (const e of envelope) envMap[e.member] = e;
+  // Threshold: flag members in top 10% of max moment as critical
+  const moments = envelope.map(e => e.maxMom).filter(v => v > 0);
+  const critThreshold = moments.length ? Math.max(...moments) * 0.85 : Infinity;
+
+  let rows = MODEL.memberForces;
+  if (filterLC !== 'all')  rows = rows.filter(r => r.lc === parseInt(filterLC));
+  if (filterMbr)           rows = rows.filter(r => String(r.member).includes(filterMbr));
+  if (critOnly) {
+    const critMbrs = new Set(envelope.filter(e => e.maxMom >= critThreshold).map(e => e.member));
+    rows = rows.filter(r => critMbrs.has(r.member));
+  }
+
+  document.getElementById('forces-count').textContent = `${rows.length} rows`;
+
+  if (!rows.length) { tbody.innerHTML = emptyRow(10,'No matching records'); return; }
+
+  const unitLabel = forceUnit === 'kN' ? 'kN / kNm' : (forceUnit === 'N' ? 'N / Nm' : 'kip');
+  // Update table headers
+  const th = document.querySelectorAll('#tbl-forces thead th');
+  if (th[3]) th[3].textContent = `Axial (${forceUnit})`;
+  if (th[4]) th[4].textContent = `Shear-Y (${forceUnit})`;
+  if (th[5]) th[5].textContent = `Shear-Z (${forceUnit})`;
+  if (th[6]) th[6].textContent = forceUnit==='kN'?'Torsion (kNm)':forceUnit==='N'?'Torsion (Nm)':'Torsion (kip·ft)';
+  if (th[7]) th[7].textContent = forceUnit==='kN'?'Mom-Y (kNm)':forceUnit==='N'?'Mom-Y (Nm)':'Mom-Y (kip·ft)';
+  if (th[8]) th[8].textContent = forceUnit==='kN'?'Mom-Z (kNm)':forceUnit==='N'?'Mom-Z (Nm)':'Mom-Z (kip·ft)';
+
+  tbody.innerHTML = rows.map(f => {
+    const isCrit = (envMap[f.member] && envMap[f.member].maxMom >= critThreshold);
+    const flag   = isCrit ? '<span class="td-critical">⚑ CRIT</span>' : '<span class="td-id">—</span>';
+    return `<tr class="${isCrit?'row-critical':''}">
+      <td class="td-id">${f.member}</td>
+      <td class="td-id">LC ${f.lc}</td>
+      <td class="td-id">${f.jt}</td>
+      <td class="td-num">${fmtF(f.axial)}</td>
+      <td class="td-num">${fmtF(f.shearY)}</td>
+      <td class="td-num">${fmtF(f.shearZ)}</td>
+      <td class="td-num">${fmtF(f.torsion)}</td>
+      <td class="td-num">${fmtF(f.momY)}</td>
+      <td class="td-num">${fmtF(f.momZ)}</td>
+      <td>${flag}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Envelope table ─────────────────────────────────────────────
+function renderEnvelopeTable() {
+  const card = document.getElementById('card-envelope');
+  const tbody = document.getElementById('tbody-envelope');
+  if (!MODEL || !MODEL.memberForces.length) { card.style.display='none'; return; }
+  card.style.display = '';
+  const envelope = computeEnvelope(MODEL.memberForces);
+  if (!envelope.length) return;
+  const maxMom = Math.max(...envelope.map(e => e.maxMom));
+  const critThreshold = maxMom * 0.85;
+
+  tbody.innerHTML = envelope.map(e => {
+    const isCrit = e.maxMom >= critThreshold;
+    return `<tr class="${isCrit?'row-critical':''}">
+      <td class="td-id">${e.member}${isCrit?' <span class="td-critical">⚑</span>':''}</td>
+      <td class="td-num ${isCrit?'td-critical':''}">${fmtF(e.maxAxial)}</td><td class="td-id">LC ${e.lcAxial}</td>
+      <td class="td-num">${fmtF(e.maxShear)}</td><td class="td-id">LC ${e.lcShear}</td>
+      <td class="td-num ${isCrit?'td-critical':''}">${fmtF(e.maxMom)}</td><td class="td-id">LC ${e.lcMom}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Reactions table ────────────────────────────────────────────
+function renderReactionsTable() {
+  const tbody = document.getElementById('tbody-reactions');
+  const filterLC = document.getElementById('filter-react-lc').value;
+  if (!MODEL || !MODEL.reactions.length) { tbody.innerHTML = emptyRow(8,'No reactions detected'); return; }
+  let rows = MODEL.reactions;
+  if (filterLC !== 'all') rows = rows.filter(r => r.lc === parseInt(filterLC));
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td class="td-id">${r.node}</td><td class="td-id">LC ${r.lc}</td>
+      <td class="td-num">${fmtF(r.fx)}</td><td class="td-num">${fmtF(r.fy)}</td><td class="td-num">${fmtF(r.fz)}</td>
+      <td class="td-num">${fmtF(r.mx)}</td><td class="td-num">${fmtF(r.my)}</td><td class="td-num">${fmtF(r.mz)}</td>
+    </tr>`).join('');
+}
+
+// ── Displacements table ────────────────────────────────────────
+function renderDisplacementsTable() {
+  const tbody = document.getElementById('tbody-displacements');
+  const filterLC   = document.getElementById('filter-disp-lc').value;
+  const filterNode = document.getElementById('filter-disp-node').value.trim();
+  if (!MODEL || !MODEL.displacements.length) { tbody.innerHTML = emptyRow(9,'No displacements detected'); return; }
+  let rows = MODEL.displacements;
+  if (filterLC !== 'all')  rows = rows.filter(r => r.lc === parseInt(filterLC));
+  if (filterNode)          rows = rows.filter(r => String(r.node).includes(filterNode));
+  // Max deflection displacement thresholds — flag anything > 25mm (L/240 rough guide)
+  const DEFL_WARN = 25; // mm
+  tbody.innerHTML = rows.map(d => {
+    const mag = Math.sqrt(d.ux**2 + d.uy**2 + d.uz**2);
+    const warn = mag > DEFL_WARN;
+    return `<tr class="${warn?'row-critical':''}">
+      <td class="td-id">${d.node}</td><td class="td-id">LC ${d.lc}</td>
+      <td class="td-num">${fmt(d.ux)}</td><td class="td-num ${warn?'td-critical':''}">${fmt(d.uy)}</td><td class="td-num">${fmt(d.uz)}</td>
+      <td class="td-num">${fmt(d.rx,5)}</td><td class="td-num">${fmt(d.ry,5)}</td><td class="td-num">${fmt(d.rz,5)}</td>
+      <td class="td-num ${warn?'td-critical':''}">${fmt(mag)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function emptyRow(cols, msg) {
+  return `<tr><td colspan="${cols}" style="padding:16px;color:var(--text-dim);font-family:var(--mono);font-size:12px">${msg}</td></tr>`;
+}
+
+// ----------------------------------------------------------------
+// REPORT GENERATOR
+// ----------------------------------------------------------------
+/*
+  The report closely follows the format used by KIRAS Engineering:
+  • Cover page with project metadata
+  • Numbered sections matching structural analysis deliverable standard
+  • Tables extracted from parsed MODEL data
+  • Engineering notes / assumptions inline
+*/
+function generateReport() {
+  const rc = document.getElementById('report-container');
+
+  // Collect project info from editable fields
+  const pi = {
+    jobName:   document.getElementById('pi-jobname').value  || MODEL.title || 'Unnamed Project',
+    jobNo:     document.getElementById('pi-jobno').value    || '—',
+    engineer:  document.getElementById('pi-engineer').value || '—',
+    date:      document.getElementById('pi-date').value     || new Date().toISOString().slice(0,10),
+    software:  document.getElementById('pi-software').value || 'STAAD.Pro',
+    code:      document.getElementById('pi-code').value     || '—',
+  };
+
+  if (!MODEL) {
+    rc.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">Please load a STAAD output file first</div></div>`;
+    switchTab('report');
+    return;
+  }
+
+  const envelope = computeEnvelope(MODEL.memberForces);
+  const maxMom = envelope.length ? Math.max(...envelope.map(e => e.maxMom)) : 0;
+  const critThreshold = maxMom * 0.85;
+
+  // Build node support map
+  const supMap = {};
+  for (const s of MODEL.supports) supMap[s.node] = s.type;
+
+  // ── Build HTML string ────────────────────────────────────────
+  let html = '';
+
+  // §0 — COVER
+  html += `
+  <div class="rpt-cover">
+    <div class="rpt-firm">KIRAS Engineering Ltd — Structural Analysis Report</div>
+    <div class="rpt-title">${pi.jobName}</div>
+    <div class="rpt-subtitle">Linear Elastic Static Analysis — Computer Output Summary</div>
+    <div class="rpt-meta-grid">
+      <div class="rpt-meta-cell"><div class="rpt-meta-key">Job No.</div><div class="rpt-meta-val">${pi.jobNo}</div></div>
+      <div class="rpt-meta-cell"><div class="rpt-meta-key">Engineer</div><div class="rpt-meta-val">${pi.engineer}</div></div>
+      <div class="rpt-meta-cell"><div class="rpt-meta-key">Date</div><div class="rpt-meta-val">${pi.date}</div></div>
+      <div class="rpt-meta-cell"><div class="rpt-meta-key">Software</div><div class="rpt-meta-val">${pi.software}</div></div>
+      <div class="rpt-meta-cell"><div class="rpt-meta-key">Design Code</div><div class="rpt-meta-val">${pi.code}</div></div>
+      <div class="rpt-meta-cell"><div class="rpt-meta-key">Analysis Type</div><div class="rpt-meta-val">Linear Static</div></div>
+    </div>
+  </div>`;
+
+  // §1 — MODEL SUMMARY
+  html += rptSection('1', 'Model Summary', `
+    <div class="rpt-note">
+      File parsed by KIRAS.ANL automated extractor. Results should be verified against the original STAAD.Pro output.
+    </div>
+    <table class="rpt-table">
+      <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Total Joints</td><td>${MODEL.nodes.length}</td></tr>
+        <tr><td>Total Members</td><td>${MODEL.members.length}</td></tr>
+        <tr><td>Supported Nodes</td><td>${MODEL.supports.length}</td></tr>
+        <tr><td>Load Cases</td><td>${MODEL.loadCases.length}</td></tr>
+        <tr><td>Unique Sections</td><td>${[...new Set(MODEL.members.map(m=>m.section))].filter(s=>s!=='—').join(', ') || '—'}</td></tr>
+        <tr><td>Force Unit</td><td>${MODEL.unitForce}</td></tr>
+        <tr><td>Length Unit</td><td>${MODEL.unitLength}</td></tr>
+      </tbody>
+    </table>
+  `);
+
+  // §2 — GEOMETRY
+  html += rptSection('2', 'Structural Geometry', `
+    <div class="rpt-note rpt-assumption">
+      Assumption: Coordinates in metres. Right-hand coordinate system assumed (X horizontal, Y vertical, Z out-of-plane).
+    </div>
+    <p style="font-size:13px;margin-bottom:12px;color:var(--text-dim)">
+      <strong style="color:var(--text)">2.1 Joint Coordinates</strong>
+    </p>
+    <table class="rpt-table">
+      <thead><tr><th>Joint</th><th>X (m)</th><th>Y (m)</th><th>Z (m)</th><th>Condition</th></tr></thead>
+      <tbody>
+        ${MODEL.nodes.slice(0,50).map(n=>`
+        <tr>
+          <td>${n.id}</td>
+          <td style="text-align:right">${fmt(n.x)}</td>
+          <td style="text-align:right">${fmt(n.y)}</td>
+          <td style="text-align:right">${fmt(n.z)}</td>
+          <td>${n.support || 'Free'}</td>
+        </tr>`).join('')}
+        ${MODEL.nodes.length > 50 ? `<tr><td colspan="5" style="color:var(--text-dim)">… and ${MODEL.nodes.length-50} more joints (see full table in Geometry tab)</td></tr>` : ''}
+      </tbody>
+    </table>
+    <p style="font-size:13px;margin:16px 0 12px;color:var(--text-dim)">
+      <strong style="color:var(--text)">2.2 Member Incidences</strong>
+    </p>
+    <table class="rpt-table">
+      <thead><tr><th>Member</th><th>i-Node</th><th>j-Node</th><th>Section</th></tr></thead>
+      <tbody>
+        ${MODEL.members.slice(0,50).map(m=>`
+        <tr><td>${m.id}</td><td>${m.start}</td><td>${m.end}</td><td>${m.section}</td></tr>`).join('')}
+        ${MODEL.members.length > 50 ? `<tr><td colspan="4" style="color:var(--text-dim)">… and ${MODEL.members.length-50} more members</td></tr>` : ''}
+      </tbody>
+    </table>
+  `);
+
+  // §3 — MATERIAL & SECTION PROPERTIES
+  html += rptSection('3', 'Material &amp; Section Properties', `
+    <div class="rpt-note rpt-assumption">
+      Assumption: Material constants as specified in STAAD input. E in kN/m² unless otherwise noted.
+    </div>
+    ${MODEL.materials.length ? `
+    <p style="font-size:13px;margin-bottom:12px;color:var(--text-dim)"><strong style="color:var(--text)">3.1 Material Constants</strong></p>
+    <table class="rpt-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>${MODEL.materials.slice(0,20).map(m=>`<tr><td>${m.property}</td><td>${m.value}</td></tr>`).join('')}</tbody>
+    </table>` : '<p style="color:var(--text-dim);font-size:13px">No material constants detected.</p>'}
+    ${MODEL.sections.length ? `
+    <p style="font-size:13px;margin:16px 0 12px;color:var(--text-dim)"><strong style="color:var(--text)">3.2 Section Assignments</strong></p>
+    <table class="rpt-table">
+      <thead><tr><th>Profile</th><th>Member List</th></tr></thead>
+      <tbody>${MODEL.sections.map(s=>`<tr><td>${s.profile}</td><td style="font-size:11px">${s.members.join(', ')}</td></tr>`).join('')}</tbody>
+    </table>` : ''}
+  `);
+
+  // §4 — LOADS
+  html += rptSection('4', 'Applied Loads', `
+    <p style="font-size:13px;margin-bottom:12px;color:var(--text-dim)"><strong style="color:var(--text)">4.1 Load Cases</strong></p>
+    ${MODEL.loadCases.length ? `
+    <table class="rpt-table">
+      <thead><tr><th>#</th><th>Type</th><th>Title</th></tr></thead>
+      <tbody>${MODEL.loadCases.map(lc=>`<tr><td>${lc.num}</td><td>${lc.type}</td><td>${lc.title}</td></tr>`).join('')}</tbody>
+    </table>` : '<p style="color:var(--text-dim);font-size:13px">No load cases detected in this file.</p>'}
+    ${MODEL.nodeLoads.length ? `
+    <p style="font-size:13px;margin:16px 0 12px;color:var(--text-dim)"><strong style="color:var(--text)">4.2 Nodal Loads</strong></p>
+    <table class="rpt-table">
+      <thead><tr><th>LC</th><th>Node</th><th>FX (kN)</th><th>FY (kN)</th><th>FZ (kN)</th></tr></thead>
+      <tbody>${MODEL.nodeLoads.slice(0,30).map(l=>`<tr><td>${l.lc}</td><td>${l.node}</td><td style="text-align:right">${fmt(l.fx)}</td><td style="text-align:right">${fmt(l.fy)}</td><td style="text-align:right">${fmt(l.fz)}</td></tr>`).join('')}</tbody>
+    </table>` : ''}
+    ${MODEL.memberLoads.length ? `
+    <p style="font-size:13px;margin:16px 0 12px;color:var(--text-dim)"><strong style="color:var(--text)">4.3 Member Loads</strong></p>
+    <table class="rpt-table">
+      <thead><tr><th>LC</th><th>Member</th><th>Type</th><th>Dir</th><th>Value</th></tr></thead>
+      <tbody>${MODEL.memberLoads.slice(0,30).map(l=>`<tr><td>${l.lc}</td><td>${l.member}</td><td>${l.loadType}</td><td>${l.dir}</td><td style="text-align:right">${fmt(l.value)}</td></tr>`).join('')}</tbody>
+    </table>` : ''}
+  `);
+
+  // §5 — MEMBER FORCES
+  html += rptSection('5', 'Member End Forces', `
+    <div class="rpt-note">
+      Forces reported at member ends (i-node and j-node). Sign convention: Axial positive = tension.
+      Units: kN for forces, kNm for moments. All load cases shown.
+    </div>
+    ${MODEL.memberForces.length ? `
+    <table class="rpt-table">
+      <thead>
+        <tr>
+          <th>Mbr</th><th>LC</th><th>Node</th>
+          <th>Axial (kN)</th><th>Shear-Y (kN)</th><th>Shear-Z (kN)</th>
+          <th>Torsion (kNm)</th><th>Mom-Y (kNm)</th><th>Mom-Z (kNm)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${MODEL.memberForces.slice(0,100).map(f=>{
+          const envE = envelope.find(e=>e.member===f.member);
+          const isCrit = envE && envE.maxMom >= critThreshold;
+          return `<tr style="${isCrit?'background:var(--red-bg)':''}">
+            <td>${f.member}${isCrit?' ⚑':''}</td>
+            <td>${f.lc}</td><td>${f.jt}</td>
+            <td style="text-align:right;${isCrit?'color:var(--red);font-weight:600':''}">${fmt(f.axial)}</td>
+            <td style="text-align:right">${fmt(f.shearY)}</td>
+            <td style="text-align:right">${fmt(f.shearZ)}</td>
+            <td style="text-align:right">${fmt(f.torsion)}</td>
+            <td style="text-align:right">${fmt(f.momY)}</td>
+            <td style="text-align:right;${isCrit?'color:var(--red);font-weight:600':''}">${fmt(f.momZ)}</td>
+          </tr>`;
+        }).join('')}
+        ${MODEL.memberForces.length > 100 ? `<tr><td colspan="9" style="color:var(--text-dim)">… and ${MODEL.memberForces.length-100} more rows</td></tr>` : ''}
+      </tbody>
+    </table>
+    <div class="rpt-note rpt-assumption" style="margin-top:12px">
+      ⚑ Members highlighted in red are CRITICAL (max moment ≥ 85% of peak across all members/LCs).
+    </div>` : '<p style="color:var(--text-dim);font-size:13px">No member force data detected — this may be a geometry input file.</p>'}
+  `);
+
+  // §5.1 — FORCE ENVELOPE
+  if (envelope.length) {
+    html += rptSection('5.1', 'Force Envelope — Critical Summary', `
+      <div class="rpt-note">
+        Maximum absolute values across all load cases per member. Use for preliminary member selection / code checks.
+      </div>
+      <table class="rpt-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Max |Axial| (kN)</th><th>Gov. LC</th>
+            <th>Max |Shear| (kN)</th><th>Gov. LC</th>
+            <th>Max |Moment| (kNm)</th><th>Gov. LC</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${envelope.map(e=>{
+            const isCrit = e.maxMom >= critThreshold;
+            return `<tr style="${isCrit?'background:var(--red-bg)':''}">
+              <td>${e.member}${isCrit?' ⚑':''}</td>
+              <td style="text-align:right">${fmt(e.maxAxial)}</td><td>LC ${e.lcAxial}</td>
+              <td style="text-align:right">${fmt(e.maxShear)}</td><td>LC ${e.lcShear}</td>
+              <td style="text-align:right;${isCrit?'color:var(--red);font-weight:600':''}">${fmt(e.maxMom)}</td><td>LC ${e.lcMom}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    `);
+  }
+
+  // §6 — SUPPORT REACTIONS
+  html += rptSection('6', 'Support Reactions', `
+    <div class="rpt-note">
+      Reactions reported at supported nodes. Positive FY = upward reaction. Units: kN / kNm.
+    </div>
+    ${MODEL.reactions.length ? `
+    <table class="rpt-table">
+      <thead>
+        <tr>
+          <th>Node</th><th>LC</th>
+          <th>FX (kN)</th><th>FY (kN)</th><th>FZ (kN)</th>
+          <th>MX (kNm)</th><th>MY (kNm)</th><th>MZ (kNm)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${MODEL.reactions.map(r=>`
+        <tr>
+          <td>${r.node}</td><td>${r.lc}</td>
+          <td style="text-align:right">${fmt(r.fx)}</td>
+          <td style="text-align:right">${fmt(r.fy)}</td>
+          <td style="text-align:right">${fmt(r.fz)}</td>
+          <td style="text-align:right">${fmt(r.mx)}</td>
+          <td style="text-align:right">${fmt(r.my)}</td>
+          <td style="text-align:right">${fmt(r.mz)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>` : '<p style="color:var(--text-dim);font-size:13px">No reaction data detected in this file.</p>'}
+  `);
+
+  // §7 — DISPLACEMENTS
+  html += rptSection('7', 'Joint Displacements', `
+    <div class="rpt-note">
+      Translations in mm; rotations in radians. Maximum resultant displacement |δ| flagged where &gt; 25 mm.
+    </div>
+    <div class="rpt-note rpt-assumption">
+      Assumption: STAAD output displacement unit converted to mm. Verify unit header in source file.
+    </div>
+    ${MODEL.displacements.length ? `
+    <table class="rpt-table">
+      <thead>
+        <tr>
+          <th>Node</th><th>LC</th>
+          <th>UX (mm)</th><th>UY (mm)</th><th>UZ (mm)</th>
+          <th>RX (rad)</th><th>RY (rad)</th><th>RZ (rad)</th>
+          <th>|δ| (mm)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${MODEL.displacements.map(d=>{
+          const mag = Math.sqrt(d.ux**2+d.uy**2+d.uz**2);
+          const warn = mag > 25;
+          return `<tr style="${warn?'background:var(--red-bg)':''}">
+            <td>${d.node}</td><td>${d.lc}</td>
+            <td style="text-align:right">${fmt(d.ux)}</td>
+            <td style="text-align:right;${warn?'color:var(--red);font-weight:600':''}">${fmt(d.uy)}</td>
+            <td style="text-align:right">${fmt(d.uz)}</td>
+            <td style="text-align:right">${fmt(d.rx,5)}</td>
+            <td style="text-align:right">${fmt(d.ry,5)}</td>
+            <td style="text-align:right">${fmt(d.rz,5)}</td>
+            <td style="text-align:right;${warn?'color:var(--red);font-weight:600':''}">${fmt(mag)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>` : '<p style="color:var(--text-dim);font-size:13px">No displacement data detected in this file.</p>'}
+  `);
+
+  // §8 — NOTES & ASSUMPTIONS
+  html += rptSection('8', 'Engineering Notes &amp; Assumptions', `
+    <div class="rpt-note rpt-assumption">
+      1. This report is an automated extraction from STAAD.Pro output. The engineer of record is responsible for verifying
+      all results against the original software output before use in design.
+    </div>
+    <div class="rpt-note rpt-assumption" style="margin-top:8px">
+      2. Sign convention follows STAAD.Pro default: positive axial = tension; moments follow right-hand rule.
+    </div>
+    <div class="rpt-note rpt-assumption" style="margin-top:8px">
+      3. Critical member flagging uses a threshold of 85% of peak envelope moment. This is a preliminary screening
+      criterion only — formal code checks per CSA S16/S136 or NSCP must be performed separately.
+    </div>
+    <div class="rpt-note rpt-assumption" style="margin-top:8px">
+      4. Displacement warning threshold of 25 mm is indicative only. Serviceability limits per applicable code
+      (e.g. L/360 for floors, L/180 for roof, H/400 for drift) must be evaluated against span/height.
+    </div>
+    <div class="rpt-note rpt-assumption" style="margin-top:8px">
+      5. Parse engine handles STAAD.Pro V8i / CONNECT Edition free-format text output.
+      Files with custom print commands or non-standard formatting may require manual review.
+    </div>
+  `);
+
+  // Footer
+  html += `
+  <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:32px;
+    display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--text-dim)">
+    <span>KIRAS Engineering Ltd — ${pi.jobName} — ${pi.jobNo}</span>
+    <span>Generated: ${new Date().toLocaleString()}</span>
+    <span>KIRAS.ANL v1.0</span>
+  </div>`;
+
+  rc.innerHTML = html;
+  switchTab('report');
+}
+
+// Helper to build a report section
+function rptSection(num, title, body) {
+  return `
+  <div class="rpt-section">
+    <div class="rpt-section-header">
+      <span class="rpt-section-num">${num}</span>
+      <span class="rpt-section-title">${title}</span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+// ----------------------------------------------------------------
+// EXPORT: JSON
+// ----------------------------------------------------------------
+function exportJSON() {
+  if (!MODEL) return;
+  const blob = new Blob([JSON.stringify(MODEL, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'staad_model_data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ----------------------------------------------------------------
+// DRAG OVER BODY
+// ----------------------------------------------------------------
+document.body.addEventListener('dragover', e => e.preventDefault());
+document.body.addEventListener('drop',     e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+</script>
+</body>
+</html>
